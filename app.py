@@ -27,6 +27,7 @@ os.makedirs('static', exist_ok=True)
 descargar_de_drive(ID_JSON_DRIVE, f'static/{NOMBRE_JSON}')
 descargar_de_drive(ID_CSV_DRIVE, f'static/{NOMBRE_CSV}')
 
+
 html_maestro = """
 <!DOCTYPE html>
 <html>
@@ -48,24 +49,27 @@ html_maestro = """
             border-bottom: 2px solid #ddd;
         }
         select, input { padding: 10px; border-radius: 5px; border: 1px solid #ccc; width: 200px; font-size: 14px; }
-        #map { height: 80vh; width: 100%; }
+        #map { height: 80vh; width: 100%; position: relative; }
         
-        /* Estilos de la Leyenda */
+        /* Estilos de la Leyenda Forzada Arriba */
         .info.legend {
-            background: white;
-            padding: 10px;
-            border-radius: 5px;
-            box-shadow: 0 0 15px rgba(0,0,0,0.2);
-            line-height: 20px;
-            color: #555;
-            font-size: 12px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            line-height: 22px;
+            color: #333;
+            font-size: 13px;
+            font-weight: bold;
+            border: 2px solid #001f3f;
         }
         .info.legend i {
-            width: 18px;
-            height: 18px;
+            width: 20px;
+            height: 20px;
             float: left;
-            margin-right: 8px;
-            opacity: 0.8;
+            margin-right: 10px;
+            opacity: 0.9;
+            border: 1px solid #999;
         }
     </style>
 </head>
@@ -93,21 +97,18 @@ html_maestro = """
                    d > 0.2 ? '#FC4E2A' : d > 0.05 ? '#FD8D3C' : '#FFEDA0';
         }
 
-        // AGREGAR LEYENDA AL MAPA
-        var legend = L.control({position: 'bottomright'});
+        // LEYENDA EN LA PARTE SUPERIOR DERECHA
+        var legend = L.control({position: 'topright'});
         legend.onAdd = function (map) {
             var div = L.DomUtil.create('div', 'info legend'),
                 grades = [0, 0.05, 0.2, 0.4, 0.6, 0.8],
-                labels = ['<strong>Nivel de Riesgo</strong>'];
+                labels = ['<div style="margin-bottom:5px; text-align:center;">Probabilidad</div>'];
 
             for (var i = 0; i < grades.length; i++) {
                 div.innerHTML +=
-                    labels.push(
-                        '<i style="background:' + getColor(grades[i] + 0.01) + '"></i> ' +
-                        (grades[i] * 100).toFixed(0) + '%' + (grades[i + 1] ? '&ndash;' + (grades[i + 1] * 100).toFixed(0) + '%' : '+')
-                    );
+                    '<i style="background:' + getColor(grades[i] + 0.01) + '"></i> ' +
+                    (grades[i] * 100).toFixed(0) + '%' + (grades[i + 1] ? '&ndash;' + (grades[i + 1] * 100).toFixed(0) + '%' + '<br>' : '+');
             }
-            div.innerHTML = labels.join('<br>');
             return div;
         };
         legend.addTo(map);
@@ -208,6 +209,5 @@ def serve_static(filename):
     return send_from_directory('static', filename)
 
 if __name__ == '__main__':
-    # Configuración para producción
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
