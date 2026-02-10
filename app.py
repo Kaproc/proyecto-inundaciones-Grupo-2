@@ -27,7 +27,6 @@ os.makedirs('static', exist_ok=True)
 descargar_de_drive(ID_JSON_DRIVE, f'static/{NOMBRE_JSON}')
 descargar_de_drive(ID_CSV_DRIVE, f'static/{NOMBRE_CSV}')
 
-# --- BLOQUE HTML MAESTRO ---
 html_maestro = """
 <!DOCTYPE html>
 <html>
@@ -50,16 +49,32 @@ html_maestro = """
         }
         select, input { padding: 10px; border-radius: 5px; border: 1px solid #ccc; width: 200px; font-size: 14px; }
         #map { height: 80vh; width: 100%; }
-        .legend { background: white; padding: 10px; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.2); line-height: 18px; }
-        .legend i { width: 18px; height: 18px; float: left; margin-right: 8px; opacity: 0.8; }
+        
+        /* Estilos de la Leyenda */
+        .info.legend {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            line-height: 20px;
+            color: #555;
+            font-size: 12px;
+        }
+        .info.legend i {
+            width: 18px;
+            height: 18px;
+            float: left;
+            margin-right: 8px;
+            opacity: 0.8;
+        }
     </style>
 </head>
 <body>
-    <div class="header"><h2 style="margin:0;">Analisis de Riesgo por Parroquia</h2></div>
+    <div class="header"><h2 style="margin:0;">Análisis de Riesgo por Parroquia</h2></div>
 
     <div class="controls">
         <select id="prov"><option value="">Provincia...</option></select>
-        <select id="can" disabled><option value="">Canton...</option></select>
+        <select id="can" disabled><option value="">Cantón...</option></select>
         <select id="par" disabled><option value="">Parroquia...</option></select>
         <button onclick="location.reload()" style="padding: 10px; cursor: pointer; background: #f8f9fa; border: 1px solid #ddd; border-radius: 5px;">Reiniciar Mapa</button>
     </div>
@@ -78,7 +93,25 @@ html_maestro = """
                    d > 0.2 ? '#FC4E2A' : d > 0.05 ? '#FD8D3C' : '#FFEDA0';
         }
 
-        // Renderizado de rutas estáticas
+        // AGREGAR LEYENDA AL MAPA
+        var legend = L.control({position: 'bottomright'});
+        legend.onAdd = function (map) {
+            var div = L.DomUtil.create('div', 'info legend'),
+                grades = [0, 0.05, 0.2, 0.4, 0.6, 0.8],
+                labels = ['<strong>Nivel de Riesgo</strong>'];
+
+            for (var i = 0; i < grades.length; i++) {
+                div.innerHTML +=
+                    labels.push(
+                        '<i style="background:' + getColor(grades[i] + 0.01) + '"></i> ' +
+                        (grades[i] * 100).toFixed(0) + '%' + (grades[i + 1] ? '&ndash;' + (grades[i + 1] * 100).toFixed(0) + '%' : '+')
+                    );
+            }
+            div.innerHTML = labels.join('<br>');
+            return div;
+        };
+        legend.addTo(map);
+
         const urlJson = encodeURI('/static/{{NOMBRE_JSON}}');
         const urlCsv = encodeURI('/static/{{NOMBRE_CSV}}');
 
@@ -105,7 +138,7 @@ html_maestro = """
                     var contenido = '<div style="font-size:13px;">' +
                         '<b style="color:#001f3f;">' + f.properties.DPA_DESPAR + '</b><br>' +
                         '<b>Provincia:</b> ' + f.properties.DPA_DESPRO + '<br>' +
-                        '<b>Canton:</b> ' + f.properties.DPA_DESCAN + '<br>' +
+                        '<b>Cantón:</b> ' + f.properties.DPA_DESCAN + '<br>' +
                         '<hr style="border:0; border-top:1px solid #eee;">' +
                         '<b>Riesgo:</b> ' + (p * 100).toFixed(2) + '%' +
                         '</div>';
@@ -121,7 +154,7 @@ html_maestro = """
             provincias.forEach(p => selProv.add(new Option(p, p)));
 
             selProv.onchange = () => {
-                selCan.innerHTML = '<option value="">Canton...</option>';
+                selCan.innerHTML = '<option value="">Cantón...</option>';
                 selPar.innerHTML = '<option value="">Parroquia...</option>';
                 selCan.disabled = !selProv.value;
                 selPar.disabled = true;
@@ -175,6 +208,6 @@ def serve_static(filename):
     return send_from_directory('static', filename)
 
 if __name__ == '__main__':
-    # Configuración para producción en Render
+    # Configuración para producción
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
