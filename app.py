@@ -1,6 +1,6 @@
 import os
 import requests
-from flask import Flask, render_template_string, send_from_directory
+from Flask import Flask, render_template_string, send_from_directory
 
 # CONFIGURACIÓN DE ARCHIVOS #
 ID_JSON_DRIVE = '1u8uvcR8Mf5U3bXqbu8Qv2wiKJuhilCbJ'
@@ -23,7 +23,7 @@ def descargar_de_drive(file_id, output_path):
         print(f"Error en descarga: {e}")
 
 # Crear carpeta static y bajar archivos
-os.makedirs('static', exist_ok=True)
+os.makedirs('static', True)
 descargar_de_drive(ID_JSON_DRIVE, f'static/{NOMBRE_JSON}')
 descargar_de_drive(ID_CSV_DRIVE, f'static/{NOMBRE_CSV}')
 
@@ -50,23 +50,23 @@ html_maestro = """
         select, input { padding: 10px; border-radius: 5px; border: 1px solid #ccc; width: 200px; font-size: 14px; }
         #map { height: 80vh; width: 100%; position: relative; }
         
-        /* LEYENDA MÁS GRANDE Y CLARA */
+        /* LEYENDA AGRANDADA */
         .info.legend {
             background: rgba(255, 255, 255, 0.95);
             padding: 15px;
-            border-radius: 10px;
+            border-radius: 8px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            line-height: 26px; /* Más espacio entre líneas */
+            line-height: 24px;
             color: #333;
-            font-size: 15px; /* Texto más grande */
+            font-size: 14px;
             border: 2px solid #001f3f;
-            min-width: 150px;
+            min-width: 140px;
         }
         .info.legend i {
-            width: 25px; /* Cuadritos más grandes */
-            height: 25px;
+            width: 22px;
+            height: 22px;
             float: left;
-            margin-right: 12px;
+            margin-right: 10px;
             opacity: 0.9;
             border: 1px solid #999;
         }
@@ -79,7 +79,7 @@ html_maestro = """
         <select id="prov"><option value="">Provincia...</option></select>
         <select id="can" disabled><option value="">Cantón...</option></select>
         <select id="par" disabled><option value="">Parroquia...</option></select>
-        <button onclick="location.reload()" style="padding: 10px; cursor: pointer; background: #f8f9fa; border: 1px solid #ddd; border-radius: 5px;">Reiniciar Mapa</button>
+        <button onclick="location.reload()" style="padding: 10px; cursor: pointer; border-radius: 5px; background: #f8f9fa; border: 1px solid #ddd;">Reiniciar</button>
     </div>
 
     <div id="map"></div>
@@ -102,17 +102,16 @@ html_maestro = """
 
         var legend = L.control({position: 'topright'});
         legend.onAdd = function (map) {
-            var div = L.DomUtil.create('div', 'info legend'),
-                grades = [0, 0.01, 0.2, 0.4, 0.6, 0.8],
-                labels = ['<strong style="display:block; margin-bottom:10px; text-align:center; border-bottom:1px solid #ccc; padding-bottom:5px;">Nivel de Riesgo</strong>'];
+            var div = L.DomUtil.create('div', 'info legend');
+            var grades = [0, 0.01, 0.2, 0.4, 0.6, 0.8];
+            
+            div.innerHTML = '<strong style="display:block; margin-bottom:8px; text-align:center; border-bottom:1px solid #ccc;">Nivel de Riesgo</strong>';
 
             for (var i = 0; i < grades.length; i++) {
-                labels.push(
+                div.innerHTML +=
                     '<i style="background:' + getColor(grades[i] + 0.001) + '"></i> ' +
-                    (grades[i] * 100).toFixed(0) + '%' + (grades[i + 1] ? '&ndash;' + (grades[i + 1] * 100).toFixed(0) + '%' : '+')
-                );
+                    (grades[i] * 100).toFixed(0) + '%' + (grades[i + 1] ? '&ndash;' + (grades[i + 1] * 100).toFixed(0) + '%' + '<br>' : '+');
             }
-            div.innerHTML = labels.join('<br>');
             return div;
         };
         legend.addTo(map);
@@ -139,78 +138,7 @@ html_maestro = """
                     weight: 0.6, opacity: 1, color: 'white', fillOpacity: 0.7
                 }),
                 onEachFeature: (f, l) => {
-                    var p = riskData[f.properties.DPA_PARROQ] || 0;
-                    var contenido = '<div style="font-size:13px;">' +
-                        '<b style="color:#001f3f;">' + f.properties.DPA_DESPAR + '</b><br>' +
-                        '<b>Provincia:</b> ' + f.properties.DPA_DESPRO + '<br>' +
-                        '<b>Cantón:</b> ' + f.properties.DPA_DESCAN + '<br>' +
-                        '<hr style="border:0; border-top:1px solid #eee; margin: 5px 0;">' +
-                        '<b>Riesgo:</b> ' + (p * 100).toFixed(2) + '%' +
-                        '</div>';
-                    l.bindPopup(contenido);
-                }
-            }).addTo(map);
-
-            const selProv = document.getElementById('prov');
-            const selCan = document.getElementById('can');
-            const selPar = document.getElementById('par');
-
-            const provincias = [...new Set(geojsonData.features.map(f => f.properties.DPA_DESPRO))].sort();
-            provincias.forEach(p => selProv.add(new Option(p, p)));
-
-            selProv.onchange = () => {
-                selCan.innerHTML = '<option value="">Cantón...</option>';
-                selPar.innerHTML = '<option value="">Parroquia...</option>';
-                selCan.disabled = !selProv.value;
-                selPar.disabled = true;
-                if (selProv.value) {
-                    const filtered = geojsonData.features.filter(f => f.properties.DPA_DESPRO === selProv.value);
-                    const cantones = [...new Set(filtered.map(f => f.properties.DPA_DESCAN))].sort();
-                    cantones.forEach(c => selCan.add(new Option(c, c)));
-                    map.fitBounds(L.geoJson(filtered).getBounds());
-                }
-            };
-
-            selCan.onchange = () => {
-                selPar.innerHTML = '<option value="">Parroquia...</option>';
-                selPar.disabled = !selCan.value;
-                if (selCan.value) {
-                    const filtered = geojsonData.features.filter(f =>
-                        f.properties.DPA_DESPRO === selProv.value &&
-                        f.properties.DPA_DESCAN === selCan.value
-                    );
-                    filtered.sort((a,b) => a.properties.DPA_DESPAR.localeCompare(b.properties.DPA_DESPAR))
-                            .forEach(f => selPar.add(new Option(f.properties.DPA_DESPAR, f.properties.DPA_PARROQ)));
-                    map.fitBounds(L.geoJson(filtered).getBounds());
-                }
-            };
-
-            selPar.onchange = () => {
-                geoLayer.eachLayer(l => {
-                    if(l.feature.properties.DPA_PARROQ === selPar.value) {
-                        map.fitBounds(l.getBounds());
-                        l.openPopup();
-                    }
-                });
-            };
-        });
-    </script>
-</body>
-</html>
-"""
-
-# Reemplazo de variables
-html_maestro = html_maestro.replace("{{NOMBRE_JSON}}", NOMBRE_JSON).replace("{{NOMBRE_CSV}}", NOMBRE_CSV)
-
-app = Flask(__name__)
-
-@app.route('/')
-def home():
-    return render_template_string(html_maestro)
-
-@app.route('/static/<path:filename>')
-def serve_static(filename):
-    return send_from_directory('static', filename)
+                    var p = riskData[f.properties.DPA
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
