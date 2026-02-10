@@ -22,6 +22,7 @@ def descargar_de_drive(file_id, output_path):
     except Exception as e:
         print(f"Error en descarga: {e}")
 
+# Crear carpeta static y bajar archivos
 os.makedirs('static', exist_ok=True)
 descargar_de_drive(ID_JSON_DRIVE, f'static/{NOMBRE_JSON}')
 descargar_de_drive(ID_CSV_DRIVE, f'static/{NOMBRE_CSV}')
@@ -46,24 +47,24 @@ html_maestro = """
             align-items: center;
             border-bottom: 2px solid #ddd;
         }
-        select { padding: 10px; border-radius: 5px; border: 1px solid #ccc; width: 200px; font-size: 14px; }
+        select, input { padding: 10px; border-radius: 5px; border: 1px solid #ccc; width: 200px; font-size: 14px; }
         #map { height: 80vh; width: 100%; position: relative; }
         
-        /* LEYENDA MÁS GRANDE */
+        /* LEYENDA MÁS GRANDE Y CLARA */
         .info.legend {
             background: rgba(255, 255, 255, 0.95);
             padding: 15px;
             border-radius: 10px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            line-height: 24px;
+            line-height: 26px; /* Más espacio entre líneas */
             color: #333;
-            font-size: 14px;
+            font-size: 15px; /* Texto más grande */
             border: 2px solid #001f3f;
-            min-width: 140px;
+            min-width: 150px;
         }
         .info.legend i {
-            width: 24px;
-            height: 24px;
+            width: 25px; /* Cuadritos más grandes */
+            height: 25px;
             float: left;
             margin-right: 12px;
             opacity: 0.9;
@@ -102,15 +103,16 @@ html_maestro = """
         var legend = L.control({position: 'topright'});
         legend.onAdd = function (map) {
             var div = L.DomUtil.create('div', 'info legend'),
-                grades = [0, 0.01, 0.2, 0.4, 0.6, 0.8];
-            
-            div.innerHTML = '<strong style="display:block; margin-bottom:10px; text-align:center; border-bottom:1px solid #ccc; padding-bottom:5px;">Nivel de Riesgo</strong>';
+                grades = [0, 0.01, 0.2, 0.4, 0.6, 0.8],
+                labels = ['<strong style="display:block; margin-bottom:10px; text-align:center; border-bottom:1px solid #ccc; padding-bottom:5px;">Nivel de Riesgo</strong>'];
 
             for (var i = 0; i < grades.length; i++) {
-                div.innerHTML +=
+                labels.push(
                     '<i style="background:' + getColor(grades[i] + 0.001) + '"></i> ' +
-                    (grades[i] * 100).toFixed(0) + '%' + (grades[i + 1] ? '&ndash;' + (grades[i + 1] * 100).toFixed(0) + '%' + '<br>' : '+');
+                    (grades[i] * 100).toFixed(0) + '%' + (grades[i + 1] ? '&ndash;' + (grades[i + 1] * 100).toFixed(0) + '%' : '+')
+                );
             }
+            div.innerHTML = labels.join('<br>');
             return div;
         };
         legend.addTo(map);
@@ -138,7 +140,6 @@ html_maestro = """
                 }),
                 onEachFeature: (f, l) => {
                     var p = riskData[f.properties.DPA_PARROQ] || 0;
-                    // POPUP COMPLETO RESTAURADO
                     var contenido = '<div style="font-size:13px;">' +
                         '<b style="color:#001f3f;">' + f.properties.DPA_DESPAR + '</b><br>' +
                         '<b>Provincia:</b> ' + f.properties.DPA_DESPRO + '<br>' +
@@ -198,7 +199,9 @@ html_maestro = """
 </html>
 """
 
+# Reemplazo de variables
 html_maestro = html_maestro.replace("{{NOMBRE_JSON}}", NOMBRE_JSON).replace("{{NOMBRE_CSV}}", NOMBRE_CSV)
+
 app = Flask(__name__)
 
 @app.route('/')
