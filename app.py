@@ -19,7 +19,7 @@ def descargar_de_drive(file_id, output_path):
             with open(output_path, 'wb') as f:
                 f.write(response.content)
     except Exception as e:
-        print(e)
+        print(f"Error: {e}")
 
 os.makedirs('static', exist_ok=True)
 descargar_de_drive(ID_JSON_DRIVE, f'static/{NOMBRE_JSON}')
@@ -36,10 +36,12 @@ html_maestro = """
 body { margin:0; font-family:Segoe UI,Tahoma,sans-serif; background:#f0f2f5; }
 .header { background:#001f3f; color:white; padding:10px; text-align:center; }
 .controls {
-    display:flex; gap:15px; padding:15px; background:white;
-    justify-content:center; border-bottom:2px solid #ddd;
+    display:flex; flex-wrap:wrap; gap:15px; padding:15px; background:white;
+    justify-content:center; border-bottom:2px solid #ddd; align-items:center;
 }
-select { padding:10px; border-radius:5px; width:200px; }
+select, input { padding:10px; border-radius:5px; border:1px solid #ccc; width:200px; }
+button { padding:10px 15px; cursor:pointer; background:#001f3f; color:white; border:none; border-radius:5px; }
+button:hover { background:#003366; }
 #map { height:80vh; }
 
 .info.legend {
@@ -63,9 +65,12 @@ select { padding:10px; border-radius:5px; width:200px; }
 </div>
 
 <div class="controls">
-<select id="prov"><option value="">Provincia...</option></select>
-<select id="can" disabled><option value="">Cantón...</option></select>
-<select id="par" disabled><option value="">Parroquia...</option></select>
+    <select id="prov"><option value="">Provincia...</option></select>
+    <select id="can" disabled><option value="">Cantón...</option></select>
+    <select id="par" disabled><option value="">Parroquia...</option></select>
+    <input type="text" id="busqueda" placeholder="Buscar parroquia (ej: oyeturo)...">
+    <button onclick="buscarInteligente()">Buscar</button>
+    <button onclick="location.reload()" style="background:#666;">Reiniciar Mapa</button>
 </div>
 
 <div id="map"></div>
@@ -75,9 +80,8 @@ select { padding:10px; border-radius:5px; width:200px; }
 var map = L.map('map').setView([-1.83,-78.18],7);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-var geoLayer, riskData = {};
+var geoLayer, riskData = {}, parroquiasLista = [];
 
-// COLORES: amarillo SOLO para 0
 function getColor(d){
     return d === 0    ? '#FFEDA0' :
            d <= 0.2  ? '#FD8D3C' :
@@ -87,7 +91,6 @@ function getColor(d){
                        '#800026';
 }
 
-// LEYENDA COHERENTE
 var legend = L.control({position:'topright'});
 legend.onAdd = function(){
     var div = L.DomUtil.create('div','info legend');
@@ -102,6 +105,68 @@ legend.onAdd = function(){
     return div;
 };
 legend.addTo(map);
+
+// Función para calcular similitud de palabras (Levenshtein)
+function similitud(s1, s2) {
+    s1 = s1.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    s2 = s2.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    var costs = new Array();
+    for (var i = 0; i <= s1.length; i++) {
+        var lastValue = i;
+        for (var j = 0; j <= s2.length; j++) {
+            if (i == 0) costs[j] = j;
+            else {
+                if (j > 0) {
+                    var newValue = costs[j - 1];
+                    if (s1.charAt(i - 1) != s2.charAt(j - 1))
+                        newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
+                    costs[j - 1] = lastValue;
+                    lastValue = newValue;
+                }
+            }
+        }
+        if (i > 0) costs[s2.length] = lastValue;
+    }
+    return costs[s2.length];
+}
+
+function buscarInteligente() {
+    var entrada = document.getElementById('busqueda').value;
+    if (!entrada) return;
+
+    var mejorCoincidencia = null;
+    var menorDistancia = 999;
+
+    parroquiasLista.forEach(p => {
+        var d = similitud(entrada, p.nombre);
+        if (d < menorDistancia) {
+            menorDistancia = d;
+            mejorCoincidencia = p;
+        }
+    });
+
+    // Si la palabra es muy diferente (distancia > 4), no arriesgarse tanto
+    if (mejorCoincidencia && menorDistancia < 5) {
+        geoLayer.eachLayer(l => {
+            if(l.feature.properties.DPA_PARROQ === mejorCoincidencia.id) {
+                map.fitBounds(l.getBounds());
+                l.openPopup();
+                // Actualizar selects para que coincidan visualmente
+                document.getElementById('prov').value = l.feature.properties.DPA_DESPRO;
+                document.getElementById('prov').dispatchEvent(new Event('change'));
+                setTimeout(() => {
+                    document.getElementById('can').value = l.feature.properties.DPA_DESCAN;
+                    document.getElementById('can').dispatchEvent(new Event('change'));
+                    setTimeout(() => {
+                        document.getElementById('par').value = l.feature.properties.DPA_PARROQ;
+                    }, 100);
+                }, 100);
+            }
+        });
+    } else {
+        alert("No se encontró una parroquia similar.");
+    }
+}
 
 Promise.all([
     fetch('/static/{{NOMBRE_JSON}}').then(r=>r.json()),
@@ -124,6 +189,12 @@ Promise.all([
         }),
         onEachFeature:(f,l)=>{
             let p=riskData[f.properties.DPA_PARROQ]||0;
+            // Guardar en lista para el buscador inteligente
+            parroquiasLista.append = parroquiasLista.push({
+                nombre: f.properties.DPA_DESPAR,
+                id: f.properties.DPA_PARROQ
+            });
+
             l.bindPopup(
                 '<b>'+f.properties.DPA_DESPAR+'</b><br>'+
                 'Provincia: '+f.properties.DPA_DESPRO+'<br>'+
@@ -133,7 +204,6 @@ Promise.all([
         }
     }).addTo(map);
 
-    // ===== SELECTS (ESTO ERA LO QUE FALTABA) =====
     const selProv=document.getElementById('prov');
     const selCan=document.getElementById('can');
     const selPar=document.getElementById('par');
@@ -146,7 +216,6 @@ Promise.all([
         selPar.innerHTML='<option value="">Parroquia...</option>';
         selCan.disabled=!selProv.value;
         selPar.disabled=true;
-
         if(selProv.value){
             const f=geojsonData.features.filter(x=>x.properties.DPA_DESPRO===selProv.value);
             [...new Set(f.map(x=>x.properties.DPA_DESCAN))].sort()
@@ -158,7 +227,6 @@ Promise.all([
     selCan.onchange=()=>{
         selPar.innerHTML='<option value="">Parroquia...</option>';
         selPar.disabled=!selCan.value;
-
         if(selCan.value){
             const f=geojsonData.features.filter(x=>
                 x.properties.DPA_DESPRO===selProv.value &&
@@ -185,7 +253,6 @@ Promise.all([
 """
 
 html_maestro = html_maestro.replace("{{NOMBRE_JSON}}", NOMBRE_JSON).replace("{{NOMBRE_CSV}}", NOMBRE_CSV)
-
 app = Flask(__name__)
 
 @app.route('/')
