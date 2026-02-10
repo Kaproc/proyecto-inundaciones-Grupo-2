@@ -49,7 +49,7 @@ html_maestro = """
         }
         select, input { padding: 10px; border-radius: 5px; border: 1px solid #ccc; width: 200px; font-size: 14px; }
         #map { height: 80vh; width: 100%; position: relative; }
-        
+
         .info.legend {
             background: rgba(255, 255, 255, 0.95);
             padding: 12px;
@@ -89,26 +89,28 @@ html_maestro = """
 
         var geoLayer, riskData = {};
 
-        // CORRECCIÓN: Lógica de colores sincronizada con la leyenda
+        // COLORES: amarillo SOLO para 0%
         function getColor(d) {
-            return d > 0.8  ? '#800026' : 
-                   d > 0.6  ? '#BD0026' : 
-                   d > 0.4  ? '#E31A1C' : 
-                   d > 0.2  ? '#FC4E2A' : 
-                   d > 0.05 ? '#FD8D3C' : 
-                              '#FFEDA0';
+            return d === 0    ? '#FFEDA0' :
+                   d <= 0.2  ? '#FD8D3C' :
+                   d <= 0.4  ? '#FC4E2A' :
+                   d <= 0.6  ? '#E31A1C' :
+                   d <= 0.8  ? '#BD0026' :
+                               '#800026';
         }
 
         var legend = L.control({position: 'topright'});
         legend.onAdd = function (map) {
             var div = L.DomUtil.create('div', 'info legend'),
-                grades = [0, 0.05, 0.2, 0.4, 0.6, 0.8],
-                labels = ['<strong style="display:block; margin-bottom:8px; text-align:center; border-bottom:1px solid #ccc;">Nivel de Riesgo</strong>'];
+                grades = [0, 0.2, 0.4, 0.6, 0.8];
+
+            div.innerHTML = '<strong style="display:block; margin-bottom:8px; text-align:center; border-bottom:1px solid #ccc;">Nivel de Riesgos</strong>';
 
             for (var i = 0; i < grades.length; i++) {
                 div.innerHTML +=
-                    '<i style="background:' + getColor(grades[i] + 0.001) + '"></i> ' +
-                    (grades[i] * 100).toFixed(0) + '%' + (grades[i + 1] ? '&ndash;' + (grades[i + 1] * 100).toFixed(0) + '%' + '<br>' : '+');
+                    '<i style="background:' + getColor(grades[i]) + '"></i> ' +
+                    (grades[i] * 100).toFixed(0) + '%' +
+                    (grades[i + 1] ? ' &ndash; ' + (grades[i + 1] * 100).toFixed(0) + '%<br>' : '+');
             }
             return div;
         };
@@ -196,7 +198,6 @@ html_maestro = """
 </html>
 """
 
-# Reemplazo de variables en el HTML
 html_maestro = html_maestro.replace("{{NOMBRE_JSON}}", NOMBRE_JSON).replace("{{NOMBRE_CSV}}", NOMBRE_CSV)
 
 app = Flask(__name__)
