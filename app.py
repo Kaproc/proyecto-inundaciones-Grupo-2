@@ -27,8 +27,7 @@ os.makedirs('static', exist_ok=True)
 descargar_de_drive(ID_JSON_DRIVE, f'static/{NOMBRE_JSON}')
 descargar_de_drive(ID_CSV_DRIVE, f'static/{NOMBRE_CSV}')
 
-
-html_maestro ="""
+html_maestro = """
 <!DOCTYPE html>
 <html>
 <head>
@@ -51,7 +50,6 @@ html_maestro ="""
         select, input { padding: 10px; border-radius: 5px; border: 1px solid #ccc; width: 200px; font-size: 14px; }
         #map { height: 80vh; width: 100%; position: relative; }
         
-        /* Estilos de la Leyenda Forzada Arriba */
         .info.legend {
             background: rgba(255, 255, 255, 0.95);
             padding: 12px;
@@ -91,27 +89,27 @@ html_maestro ="""
 
         var geoLayer, riskData = {};
 
+        // Lógica de colores sincronizada con la leyenda
         function getColor(d) {
-            return d > 0.8 ? '#800026' : d > 0.6 ? '#BD0026' : d > 0.4 ? '#E31A1C' :
-                   d > 0.2 ? '#FC4E2A' : d > 0.05 ? '#FD8D3C' : '#FFEDA0';
+            return d > 0.8  ? '#800026' : 
+                   d > 0.6  ? '#BD0026' : 
+                   d > 0.4  ? '#E31A1C' : 
+                   d > 0.2  ? '#FC4E2A' : 
+                   d > 0.05 ? '#FD8D3C' : 
+                              '#FFEDA0';
         }
 
-        // LEYENDA EN LA PARTE SUPERIOR DERECHA
         var legend = L.control({position: 'topright'});
         legend.onAdd = function (map) {
             var div = L.DomUtil.create('div', 'info legend'),
                 grades = [0, 0.05, 0.2, 0.4, 0.6, 0.8],
-                // Ajuste de título para evitar quejas
                 labels = ['<strong style="display:block; margin-bottom:8px; text-align:center; border-bottom:1px solid #ccc;">Nivel de Riesgo</strong>'];
 
             for (var i = 0; i < grades.length; i++) {
                 div.innerHTML +=
-                    labels.push(
-                        '<i style="background:' + getColor(grades[i] + 0.01) + '"></i> ' +
-                        (grades[i] * 100).toFixed(0) + '%' + (grades[i + 1] ? '&ndash;' + (grades[i + 1] * 100).toFixed(0) + '%' : '+')
-                    );
+                    '<i style="background:' + getColor(grades[i] + 0.001) + '"></i> ' +
+                    (grades[i] * 100).toFixed(0) + '%' + (grades[i + 1] ? '&ndash;' + (grades[i + 1] * 100).toFixed(0) + '%' + '<br>' : '+');
             }
-            div.innerHTML = labels.join('<br>');
             return div;
         };
         legend.addTo(map);
