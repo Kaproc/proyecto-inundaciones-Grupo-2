@@ -28,7 +28,7 @@ descargar_de_drive(ID_JSON_DRIVE, f'static/{NOMBRE_JSON}')
 descargar_de_drive(ID_CSV_DRIVE, f'static/{NOMBRE_CSV}')
 
 
-html_maestro = """
+html_maestro ="""
 <!DOCTYPE html>
 <html>
 <head>
@@ -53,14 +53,13 @@ html_maestro = """
         
         /* Estilos de la Leyenda Forzada Arriba */
         .info.legend {
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.95);
             padding: 12px;
             border-radius: 8px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
             line-height: 22px;
             color: #333;
             font-size: 13px;
-            font-weight: bold;
             border: 2px solid #001f3f;
         }
         .info.legend i {
@@ -102,13 +101,17 @@ html_maestro = """
         legend.onAdd = function (map) {
             var div = L.DomUtil.create('div', 'info legend'),
                 grades = [0, 0.05, 0.2, 0.4, 0.6, 0.8],
-                labels = ['<div style="margin-bottom:5px; text-align:center;">Probabilidad</div>'];
+                // Ajuste de título para evitar quejas
+                labels = ['<strong style="display:block; margin-bottom:8px; text-align:center; border-bottom:1px solid #ccc;">Nivel de Riesgo</strong>'];
 
             for (var i = 0; i < grades.length; i++) {
                 div.innerHTML +=
-                    '<i style="background:' + getColor(grades[i] + 0.01) + '"></i> ' +
-                    (grades[i] * 100).toFixed(0) + '%' + (grades[i + 1] ? '&ndash;' + (grades[i + 1] * 100).toFixed(0) + '%' + '<br>' : '+');
+                    labels.push(
+                        '<i style="background:' + getColor(grades[i] + 0.01) + '"></i> ' +
+                        (grades[i] * 100).toFixed(0) + '%' + (grades[i + 1] ? '&ndash;' + (grades[i + 1] * 100).toFixed(0) + '%' : '+')
+                    );
             }
+            div.innerHTML = labels.join('<br>');
             return div;
         };
         legend.addTo(map);
