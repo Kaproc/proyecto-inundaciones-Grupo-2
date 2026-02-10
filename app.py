@@ -50,23 +50,23 @@ html_maestro = """
         select, input { padding: 10px; border-radius: 5px; border: 1px solid #ccc; width: 200px; font-size: 14px; }
         #map { height: 80vh; width: 100%; position: relative; }
         
+        /* ESTILO DE LA LEYENDA RE-AJUSTADO */
         .info.legend {
-            background: rgba(255, 255, 255, 0.95);
-            padding: 12px;
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            line-height: 22px;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            line-height: 20px;
             color: #333;
-            font-size: 13px;
+            font-size: 12px;
             border: 2px solid #001f3f;
         }
         .info.legend i {
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
             float: left;
-            margin-right: 10px;
-            opacity: 0.9;
-            border: 1px solid #999;
+            margin-right: 8px;
+            opacity: 0.8;
         }
     </style>
 </head>
@@ -77,7 +77,7 @@ html_maestro = """
         <select id="prov"><option value="">Provincia...</option></select>
         <select id="can" disabled><option value="">Cantón...</option></select>
         <select id="par" disabled><option value="">Parroquia...</option></select>
-        <button onclick="location.reload()" style="padding: 10px; cursor: pointer; background: #f8f9fa; border: 1px solid #ddd; border-radius: 5px;">Reiniciar Mapa</button>
+        <button onclick="location.reload()" style="padding: 10px; cursor: pointer; border-radius: 5px;">Reiniciar</button>
     </div>
 
     <div id="map"></div>
@@ -89,21 +89,23 @@ html_maestro = """
 
         var geoLayer, riskData = {};
 
-        // Lógica de colores sincronizada con la leyenda
+        // RANGOS DE COLOR AJUSTADOS PARA SENSIBILIDAD
         function getColor(d) {
             return d > 0.8  ? '#800026' : 
                    d > 0.6  ? '#BD0026' : 
                    d > 0.4  ? '#E31A1C' : 
                    d > 0.2  ? '#FC4E2A' : 
-                   d > 0.05 ? '#FD8D3C' : 
+                   d > 0.01 ? '#FD8D3C' : 
                               '#FFEDA0';
         }
 
+        // RE-INSTALACIÓN DE LEYENDA CON TÍTULO
         var legend = L.control({position: 'topright'});
         legend.onAdd = function (map) {
-            var div = L.DomUtil.create('div', 'info legend'),
-                grades = [0, 0.05, 0.2, 0.4, 0.6, 0.8],
-                labels = ['<strong style="display:block; margin-bottom:8px; text-align:center; border-bottom:1px solid #ccc;">Nivel de Riesgo</strong>'];
+            var div = L.DomUtil.create('div', 'info legend');
+            var grades = [0, 0.01, 0.2, 0.4, 0.6, 0.8];
+            
+            div.innerHTML = '<strong style="display:block; margin-bottom:5px; text-align:center;">Nivel de Riesgo</strong>';
 
             for (var i = 0; i < grades.length; i++) {
                 div.innerHTML +=
@@ -137,13 +139,7 @@ html_maestro = """
                 }),
                 onEachFeature: (f, l) => {
                     var p = riskData[f.properties.DPA_PARROQ] || 0;
-                    var contenido = '<div style="font-size:13px;">' +
-                        '<b style="color:#001f3f;">' + f.properties.DPA_DESPAR + '</b><br>' +
-                        '<b>Provincia:</b> ' + f.properties.DPA_DESPRO + '<br>' +
-                        '<b>Cantón:</b> ' + f.properties.DPA_DESCAN + '<br>' +
-                        '<hr style="border:0; border-top:1px solid #eee;">' +
-                        '<b>Riesgo:</b> ' + (p * 100).toFixed(2) + '%' +
-                        '</div>';
+                    var contenido = '<b>' + f.properties.DPA_DESPAR + '</b><br>Riesgo: ' + (p * 100).toFixed(2) + '%';
                     l.bindPopup(contenido);
                 }
             }).addTo(map);
@@ -176,8 +172,7 @@ html_maestro = """
                         f.properties.DPA_DESPRO === selProv.value &&
                         f.properties.DPA_DESCAN === selCan.value
                     );
-                    filtered.sort((a,b) => a.properties.DPA_DESPAR.localeCompare(b.properties.DPA_DESPAR))
-                            .forEach(f => selPar.add(new Option(f.properties.DPA_DESPAR, f.properties.DPA_PARROQ)));
+                    filtered.forEach(f => selPar.add(new Option(f.properties.DPA_DESPAR, f.properties.DPA_PARROQ)));
                     map.fitBounds(L.geoJson(filtered).getBounds());
                 }
             };
@@ -196,9 +191,8 @@ html_maestro = """
 </html>
 """
 
-# Reemplazo de variables en el HTML
+# Reemplazo de variables y Flask
 html_maestro = html_maestro.replace("{{NOMBRE_JSON}}", NOMBRE_JSON).replace("{{NOMBRE_CSV}}", NOMBRE_CSV)
-
 app = Flask(__name__)
 
 @app.route('/')
