@@ -2,12 +2,12 @@ import os
 import requests
 from flask import Flask, render_template_string, send_from_directory
 
-# --- CONFIGURACIÓN DE ARCHIVOS - #
+# --- CONFIGURACIÓN DE ARCHIVOS --- #
 ID_JSON_DRIVE = '1u8uvcR8Mf5U3bXqbu8Qv2wiKJuhilCbJ'
-ID_CSV_DRIVE = '1HQCm7l0vjmGA9Ompwj7SMXCph4KJkmyq' 
+ID_CSV_DRIVE = '1CMFX_z2xlSvsTeRgjYtP2W4hZbF7Nixk'  
 
 NOMBRE_JSON = 'ORGANIZACION TERRITORIAL DEL ESTADO PARROQUIAL (1).json'
-NOMBRE_CSV = 'predicciones_nacional_completo.csv'   
+NOMBRE_CSV = 'predicciones_nacional_completo.csv'
 
 def descargar_de_drive(file_id, output_path):
     if os.path.exists(output_path):
@@ -175,7 +175,7 @@ Promise.all([
 
     csvText.split('\\n').slice(1).forEach(r=>{
         let c=r.split(',');
-        // --- CAMBIO IMPORTANTE: AHORA USAMOS c[2] PORQUE HAY 3 COLUMNAS ---
+        // --- LECTURA DEL CSV (Columna 2 = Probabilidad) ---
         if(c.length>=3){
             riskData[c[0].trim().padStart(6,'0')] = parseFloat(c[2]); 
         }
