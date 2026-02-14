@@ -2,8 +2,9 @@ import os
 import requests
 from flask import Flask, render_template_string, send_from_directory
 
+# --- CONFIGURACIÓN DE ARCHIVOS --- #
 ID_JSON_DRIVE = '1u8uvcR8Mf5U3bXqbu8Qv2wiKJuhilCbJ'
-ID_CSV_DRIVE = '1CMFX_z2xlSvsTeRgjYtP2W4hZbF7Nixk'  # <--- ID DEL CSV FINAL (HÍBRIDO)
+ID_CSV_DRIVE = '1CMFX_z2xlSvsTeRgjYtP2W4hZbF7Nixk'  
 
 NOMBRE_JSON = 'ORGANIZACION TERRITORIAL DEL ESTADO PARROQUIAL (1).json'
 NOMBRE_CSV = 'predicciones_nacional_completo.csv'
@@ -90,6 +91,14 @@ function getColor(d){
                         '#800026';
 }
 
+// --- NUEVA FUNCIÓN PARA ETIQUETAS DE TEXTO ---
+function getRiskLabel(p) {
+    if (p === 0) return "Nulo / Sin Datos";
+    if (p <= 0.33) return "Riesgo Bajo";
+    if (p <= 0.66) return "Riesgo Medio";
+    return "Riesgo Alto";
+}
+
 var legend = L.control({position:'topright'});
 legend.onAdd = function(){
     var div = L.DomUtil.create('div','info legend');
@@ -172,7 +181,6 @@ Promise.all([
 
     csvText.split('\\n').slice(1).forEach(r=>{
         let c=r.split(',');
-        // --- CAMBIO OBLIGATORIO: LECTURA CORRECTA DEL CSV NUEVO ---
         if(c.length>=3){
             riskData[c[0].trim().padStart(6,'0')] = parseFloat(c[2]); 
         }
@@ -192,12 +200,37 @@ Promise.all([
                 id: f.properties.DPA_PARROQ
             });
 
-            l.bindPopup(
+            // --- AÑADIDO: HOVER (TOOLTIP) ---
+            l.bindTooltip(
                 '<b>'+f.properties.DPA_DESPAR+'</b><br>'+
-                'Provincia: '+f.properties.DPA_DESPRO+'<br>'+
-                'Cantón: '+f.properties.DPA_DESCAN+'<hr>'+
-                'Riesgo: '+(p*100).toFixed(2)+'%'
+                'Cantón: '+f.properties.DPA_DESCAN+'<br>'+
+                'Provincia: '+f.properties.DPA_DESPRO
             );
+
+            // --- AÑADIDO: CLICK (POPUP ACTUALIZADO CON CATEGORÍA) ---
+            l.bindPopup(
+                '<div style="text-align:center">'+
+                '<b>'+f.properties.DPA_DESPAR+'</b><hr>'+
+                '<b style="color:'+getColor(p)+'">'+getRiskLabel(p).toUpperCase()+'</b><br>'+
+                'Probabilidad: '+(p*100).toFixed(2)+'%'+
+                '</div>'
+            );
+
+            // --- AÑADIDO: EVENTOS DE ILUMINACIÓN ---
+            l.on({
+                mouseover: function(e) {
+                    var layer = e.target;
+                    layer.setStyle({
+                        weight: 3,
+                        color: '#666',
+                        fillOpacity: 0.9
+                    });
+                    layer.bringToFront();
+                },
+                mouseout: function(e) {
+                    geoLayer.resetStyle(e.target);
+                }
+            });
         }
     }).addTo(map);
 
