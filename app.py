@@ -197,17 +197,20 @@ Promise.all([
                 id: f.properties.DPA_PARROQ
             });
 
-            // HOVER: Solo información básica
+            // HOVER (TOOLTIP): Provincia, Cantón y Parroquia
             l.bindTooltip(
-                '<b>'+f.properties.DPA_DESPAR+'</b>'
+                '<b>Provincia:</b> ' + f.properties.DPA_DESPRO + '<br>' +
+                '<b>Cantón:</b> ' + f.properties.DPA_DESCAN + '<br>' +
+                '<b>Parroquia:</b> ' + f.properties.DPA_DESPAR
             );
 
-            // --- POP UP ACTUALIZADO: PARROQUIA, CANTÓN, PROVINCIA Y RIESGO ---
+            // CLICK (POPUP): Información completa (Ubicación + Riesgo)
             l.bindPopup(
                 '<div style="text-align:center">'+
-                '<b style="font-size:1.1em">'+f.properties.DPA_DESPAR+'</b><br>'+
-                '<span style="color:#666; font-size:0.9em">'+f.properties.DPA_DESCAN+' - '+f.properties.DPA_DESPRO+'</span><hr style="margin:5px 0">'+
-                '<b style="color:'+getColor(p)+'">'+getRiskLabel(p).toUpperCase()+'</b><br>'+
+                '<b>PROVINCIA:</b> ' + f.properties.DPA_DESPRO + '<br>' +
+                '<b>CANTÓN:</b> ' + f.properties.DPA_DESCAN + '<br>' +
+                '<b>PARROQUIA:</b> ' + f.properties.DPA_DESPAR + '<hr style="margin:5px 0">'+
+                '<b style="color:'+getColor(p)+'; font-size:1.1em">'+getRiskLabel(p).toUpperCase()+'</b><br>'+
                 'Probabilidad: '+(p*100).toFixed(2)+'%'+
                 '</div>'
             );
