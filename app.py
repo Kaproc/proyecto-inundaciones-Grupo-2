@@ -2,9 +2,8 @@ import os
 import requests
 from flask import Flask, render_template_string, send_from_directory
 
-# --- CONFIGURACIÓN DE ARCHIVOS --- #
 ID_JSON_DRIVE = '1u8uvcR8Mf5U3bXqbu8Qv2wiKJuhilCbJ'
-ID_CSV_DRIVE = '1CMFX_z2xlSvsTeRgjYtP2W4hZbF7Nixk'  
+ID_CSV_DRIVE = '1CMFX_z2xlSvsTeRgjYtP2W4hZbF7Nixk' 
 
 NOMBRE_JSON = 'ORGANIZACION TERRITORIAL DEL ESTADO PARROQUIAL (1).json'
 NOMBRE_CSV = 'predicciones_nacional_completo.csv'
@@ -50,18 +49,27 @@ button:hover { background:#003366; }
     border-radius:8px;
     line-height:22px;
     border:2px solid #001f3f;
+    box-shadow: 0 0 10px rgba(0,0,0,0.2);
 }
 .info.legend i {
     width:20px; height:20px;
     float:left; margin-right:8px;
     border:1px solid #999;
 }
+/* Estilo para el tooltip (Hover) */
+.custom-tooltip {
+    background: white;
+    border: 1px solid #001f3f;
+    color: #001f3f;
+    font-weight: bold;
+    font-size: 12px;
+}
 </style>
 </head>
 <body>
 
 <div class="header">
-<h2 style="margin:0;">Análisis de Riesgo por Parroquia</h2>
+<h2 style="margin:0;">Análisis de Riesgo de Inundación (SAT-Ecuador)</h2>
 </div>
 
 <div class="controls">
@@ -70,7 +78,7 @@ button:hover { background:#003366; }
     <select id="par" disabled><option value="">Parroquia...</option></select>
     <input type="text" id="busqueda" placeholder="Buscar parroquia (ej: oyeturo)...">
     <button onclick="buscarInteligente()">Buscar</button>
-    <button onclick="location.reload()" style="background:#666;">Reiniciar Mapa</button>
+    <button onclick="location.reload()" style="background:#666;">Reiniciar</button>
 </div>
 
 <div id="map"></div>
@@ -91,22 +99,28 @@ function getColor(d){
                         '#800026';
 }
 
+function getRiskCategory(d) {
+    if (d === 0) return "BAJO (Seguro)";
+    if (d <= 0.4) return "MEDIO";
+    if (d <= 0.7) return "ALTO";
+    return "CRÍTICO";
+}
+
 var legend = L.control({position:'topright'});
 legend.onAdd = function(){
     var div = L.DomUtil.create('div','info legend');
     div.innerHTML =
-        '<strong style="display:block;text-align:center;margin-bottom:6px;">Nivel de Riesgos</strong>'+
-        '<i style="background:#FFEDA0"></i> 0%<br>'+
+        '<strong style="display:block;text-align:center;margin-bottom:6px;">Nivel de Riesgo</strong>'+
+        '<i style="background:#FFEDA0"></i> 0% (Bajo)<br>'+
         '<i style="background:#FD8D3C"></i> > 0%<br>'+
-        '<i style="background:#FC4E2A"></i> ≤ 40%<br>'+
+        '<i style="background:#FC4E2A"></i> ≤ 40% (Medio)<br>'+
         '<i style="background:#E31A1C"></i> ≤ 60%<br>'+
-        '<i style="background:#BD0026"></i> ≤ 80%<br>'+
-        '<i style="background:#800026"></i> > 80%';
+        '<i style="background:#BD0026"></i> ≤ 80% (Alto)<br>'+
+        '<i style="background:#800026"></i> > 80% (Crítico)';
     return div;
 };
 legend.addTo(map);
 
-// Función para calcular similitud de palabras (Levenshtein)
 function similitud(s1, s2) {
     s1 = s1.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     s2 = s2.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -133,39 +147,19 @@ function similitud(s1, s2) {
 function buscarInteligente() {
     var entrada = document.getElementById('busqueda').value;
     if (!entrada) return;
-
-    var mejorCoincidencia = null;
-    var menorDistancia = 999;
-
+    var mejorCoincidencia = null; var menorDistancia = 999;
     parroquiasLista.forEach(p => {
         var d = similitud(entrada, p.nombre);
-        if (d < menorDistancia) {
-            menorDistancia = d;
-            mejorCoincidencia = p;
-        }
+        if (d < menorDistancia) { menorDistancia = d; mejorCoincidencia = p; }
     });
-
-    // Si la palabra es muy diferente (distancia > 4), no arriesgarse tanto
     if (mejorCoincidencia && menorDistancia < 5) {
         geoLayer.eachLayer(l => {
             if(l.feature.properties.DPA_PARROQ === mejorCoincidencia.id) {
                 map.fitBounds(l.getBounds());
-                l.openPopup();
-                // Actualizar selects para que coincidan visualmente
-                document.getElementById('prov').value = l.feature.properties.DPA_DESPRO;
-                document.getElementById('prov').dispatchEvent(new Event('change'));
-                setTimeout(() => {
-                    document.getElementById('can').value = l.feature.properties.DPA_DESCAN;
-                    document.getElementById('can').dispatchEvent(new Event('change'));
-                    setTimeout(() => {
-                        document.getElementById('par').value = l.feature.properties.DPA_PARROQ;
-                    }, 100);
-                }, 100);
+                l.fire('click'); // Simular clic para abrir popup
             }
         });
-    } else {
-        alert("No se encontró una parroquia similar.");
-    }
+    } else { alert("No se encontró una parroquia similar."); }
 }
 
 Promise.all([
@@ -175,7 +169,6 @@ Promise.all([
 
     csvText.split('\\n').slice(1).forEach(r=>{
         let c=r.split(',');
-        // --- LECTURA DEL CSV (Columna 2 = Probabilidad) ---
         if(c.length>=3){
             riskData[c[0].trim().padStart(6,'0')] = parseFloat(c[2]); 
         }
@@ -190,60 +183,81 @@ Promise.all([
         }),
         onEachFeature:(f,l)=>{
             let p=riskData[f.properties.DPA_PARROQ]||0;
-            // Guardar en lista para el buscador inteligente
-            parroquiasLista.push({
-                nombre: f.properties.DPA_DESPAR,
-                id: f.properties.DPA_PARROQ
-            });
+            let cat = getRiskCategory(p);
 
+            // Guardar para buscador
+            parroquiasLista.push({ nombre: f.properties.DPA_DESPAR, id: f.properties.DPA_PARROQ });
+
+            // --- 1. POPUP (CLIC) ---
+            // Cumple Req: Categoría y Valor
             l.bindPopup(
-                '<b>'+f.properties.DPA_DESPAR+'</b><br>'+
-                'Provincia: '+f.properties.DPA_DESPRO+'<br>'+
-                'Cantón: '+f.properties.DPA_DESCAN+'<hr>'+
-                'Riesgo: '+(p*100).toFixed(2)+'%'
+                '<div style="text-align:center;">'+
+                '<b style="font-size:14px; color:#001f3f;">'+f.properties.DPA_DESPAR+'</b><br>'+
+                '<span style="color:#666;">'+f.properties.DPA_DESCAN+', '+f.properties.DPA_DESPRO+'</span><hr>'+
+                '<b>Riesgo: </b>'+cat+'<br>'+
+                '<b>Probabilidad: </b>'+(p*100).toFixed(1)+'%'+
+                '</div>'
             );
+
+            // --- 2. HOVER (PASAR EL MOUSE) ---
+            // Cumple Req: Mostrar Nombre, Cantón, Provincia al pasar cursor
+            l.bindTooltip(
+                '<b>'+f.properties.DPA_DESPAR+'</b><br>'+f.properties.DPA_DESCAN,
+                {className: 'custom-tooltip', sticky: true, direction: 'top'}
+            );
+
+            // Efecto Visual al Hover (Resaltar borde)
+            l.on({
+                mouseover: function(e) {
+                    var layer = e.target;
+                    layer.setStyle({
+                        weight: 3,
+                        color: '#333',
+                        fillOpacity: 0.9
+                    });
+                    layer.bringToFront(); // Traer al frente para que se vea el borde
+                },
+                mouseout: function(e) {
+                    geoLayer.resetStyle(e.target);
+                },
+                click: function(e) {
+                    map.fitBounds(e.target.getBounds());
+                }
+            });
         }
     }).addTo(map);
 
+    // Lógica de Selectores (Igual que antes)
     const selProv=document.getElementById('prov');
     const selCan=document.getElementById('can');
     const selPar=document.getElementById('par');
-
     const provincias=[...new Set(geojsonData.features.map(f=>f.properties.DPA_DESPRO))].sort();
     provincias.forEach(p=>selProv.add(new Option(p,p)));
 
     selProv.onchange=()=>{
         selCan.innerHTML='<option value="">Cantón...</option>';
         selPar.innerHTML='<option value="">Parroquia...</option>';
-        selCan.disabled=!selProv.value;
-        selPar.disabled=true;
+        selCan.disabled=!selProv.value; selPar.disabled=true;
         if(selProv.value){
             const f=geojsonData.features.filter(x=>x.properties.DPA_DESPRO===selProv.value);
-            [...new Set(f.map(x=>x.properties.DPA_DESCAN))].sort()
-            .forEach(c=>selCan.add(new Option(c,c)));
+            [...new Set(f.map(x=>x.properties.DPA_DESCAN))].sort().forEach(c=>selCan.add(new Option(c,c)));
             map.fitBounds(L.geoJson(f).getBounds());
         }
     };
-
     selCan.onchange=()=>{
         selPar.innerHTML='<option value="">Parroquia...</option>';
         selPar.disabled=!selCan.value;
         if(selCan.value){
-            const f=geojsonData.features.filter(x=>
-                x.properties.DPA_DESPRO===selProv.value &&
-                x.properties.DPA_DESCAN===selCan.value
-            );
+            const f=geojsonData.features.filter(x=>x.properties.DPA_DESPRO===selProv.value && x.properties.DPA_DESCAN===selCan.value);
             f.sort((a,b)=>a.properties.DPA_DESPAR.localeCompare(b.properties.DPA_DESPAR))
              .forEach(x=>selPar.add(new Option(x.properties.DPA_DESPAR,x.properties.DPA_PARROQ)));
             map.fitBounds(L.geoJson(f).getBounds());
         }
     };
-
     selPar.onchange=()=>{
         geoLayer.eachLayer(l=>{
             if(l.feature.properties.DPA_PARROQ===selPar.value){
-                map.fitBounds(l.getBounds());
-                l.openPopup();
+                map.fitBounds(l.getBounds()); l.openPopup();
             }
         });
     };
@@ -265,6 +279,5 @@ def serve_static(filename):
     return send_from_directory('static', filename)
 
 if __name__ == '__main__':
-    # Configuración compatible con Render y Local
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
