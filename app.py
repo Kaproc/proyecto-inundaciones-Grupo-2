@@ -1,7 +1,7 @@
 import os
 import requests
 from flask import Flask, render_template_string, send_from_directory
-
+#Leer los archivos desde el drive
 ID_JSON_DRIVE = '1u8uvcR8Mf5U3bXqbu8Qv2wiKJuhilCbJ'
 ID_CSV_DRIVE = '1CMFX_z2xlSvsTeRgjYtP2W4hZbF7Nixk' 
 
