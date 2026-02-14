@@ -2,12 +2,12 @@ import os
 import requests
 from flask import Flask, render_template_string, send_from_directory
 
-# CONFIGURACIÓN DE ARCHIVOS #
+# --- CONFIGURACIÓN DE ARCHIVOS - #
 ID_JSON_DRIVE = '1u8uvcR8Mf5U3bXqbu8Qv2wiKJuhilCbJ'
-ID_CSV_DRIVE = '1oBLdLOrhf78O67jmmSOu_45UZg1LWtFK'
+ID_CSV_DRIVE = '1HQCm7l0vjmGA9Ompwj7SMXCph4KJkmyq' 
 
 NOMBRE_JSON = 'ORGANIZACION TERRITORIAL DEL ESTADO PARROQUIAL (1).json'
-NOMBRE_CSV = 'predicciones_modelo_final_con_id.csv'
+NOMBRE_CSV = 'predicciones_nacional_completo.csv'   
 
 def descargar_de_drive(file_id, output_path):
     if os.path.exists(output_path):
@@ -88,7 +88,7 @@ function getColor(d){
            d <= 0.4  ? '#FC4E2A' :
            d <= 0.6  ? '#E31A1C' :
            d <= 0.8  ? '#BD0026' :
-                       '#800026';
+                        '#800026';
 }
 
 var legend = L.control({position:'topright'});
@@ -175,8 +175,9 @@ Promise.all([
 
     csvText.split('\\n').slice(1).forEach(r=>{
         let c=r.split(',');
-        if(c.length>=4){
-            riskData[c[0].trim().padStart(6,'0')] = parseFloat(c[3]);
+        // --- CAMBIO IMPORTANTE: AHORA USAMOS c[2] PORQUE HAY 3 COLUMNAS ---
+        if(c.length>=3){
+            riskData[c[0].trim().padStart(6,'0')] = parseFloat(c[2]); 
         }
     });
 
@@ -190,7 +191,7 @@ Promise.all([
         onEachFeature:(f,l)=>{
             let p=riskData[f.properties.DPA_PARROQ]||0;
             // Guardar en lista para el buscador inteligente
-            parroquiasLista.append = parroquiasLista.push({
+            parroquiasLista.push({
                 nombre: f.properties.DPA_DESPAR,
                 id: f.properties.DPA_PARROQ
             });
@@ -264,4 +265,6 @@ def serve_static(filename):
     return send_from_directory('static', filename)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    # Configuración compatible con Render y Local
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
