@@ -2,9 +2,8 @@ import os
 import requests
 from flask import Flask, render_template_string, send_from_directory
 
-# --- CONFIGURACIÓN DE ARCHIVOS --- #
 ID_JSON_DRIVE = '1u8uvcR8Mf5U3bXqbu8Qv2wiKJuhilCbJ'
-ID_CSV_DRIVE = '1CMFX_z2xlSvsTeRgjYtP2W4hZbF7Nixk'  
+ID_CSV_DRIVE = '1CMFX_z2xlSvsTeRgjYtP2W4hZbF7Nixk' 
 
 NOMBRE_JSON = 'ORGANIZACION TERRITORIAL DEL ESTADO PARROQUIAL (1).json'
 NOMBRE_CSV = 'predicciones_nacional_completo.csv'
@@ -91,7 +90,6 @@ function getColor(d){
                         '#800026';
 }
 
-// --- NUEVA FUNCIÓN PARA ETIQUETAS DE TEXTO ---
 function getRiskLabel(p) {
     if (p === 0) return "Nulo / Sin Datos";
     if (p <= 0.33) return "Riesgo Bajo";
@@ -114,7 +112,6 @@ legend.onAdd = function(){
 };
 legend.addTo(map);
 
-// Función para calcular similitud de palabras (Levenshtein)
 function similitud(s1, s2) {
     s1 = s1.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     s2 = s2.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -200,23 +197,21 @@ Promise.all([
                 id: f.properties.DPA_PARROQ
             });
 
-            // --- AÑADIDO: HOVER (TOOLTIP) ---
+            // HOVER: Solo información básica
             l.bindTooltip(
-                '<b>'+f.properties.DPA_DESPAR+'</b><br>'+
-                'Cantón: '+f.properties.DPA_DESCAN+'<br>'+
-                'Provincia: '+f.properties.DPA_DESPRO
+                '<b>'+f.properties.DPA_DESPAR+'</b>'
             );
 
-            // --- AÑADIDO: CLICK (POPUP ACTUALIZADO CON CATEGORÍA) ---
+            // --- POP UP ACTUALIZADO: PARROQUIA, CANTÓN, PROVINCIA Y RIESGO ---
             l.bindPopup(
                 '<div style="text-align:center">'+
-                '<b>'+f.properties.DPA_DESPAR+'</b><hr>'+
+                '<b style="font-size:1.1em">'+f.properties.DPA_DESPAR+'</b><br>'+
+                '<span style="color:#666; font-size:0.9em">'+f.properties.DPA_DESCAN+' - '+f.properties.DPA_DESPRO+'</span><hr style="margin:5px 0">'+
                 '<b style="color:'+getColor(p)+'">'+getRiskLabel(p).toUpperCase()+'</b><br>'+
                 'Probabilidad: '+(p*100).toFixed(2)+'%'+
                 '</div>'
             );
 
-            // --- AÑADIDO: EVENTOS DE ILUMINACIÓN ---
             l.on({
                 mouseover: function(e) {
                     var layer = e.target;
