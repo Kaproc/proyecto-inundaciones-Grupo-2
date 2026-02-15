@@ -3,10 +3,10 @@ Este proyecto implementa modelos de Machine Learning para predecir la probabilid
 
 Demo en vivo : https://proyecto-inundaciones-grupo-2.onrender.com/
 
-# Objetivo del Proyecto
+Objetivo del Proyecto
 Clasificar si una zona geográfica específica presenta riesgo de inundación (1) o no (0), basándose en el impacto humano histórico y variables climáticas, para asistir en la toma de decisiones preventivas.
 
-# Metodología y Datos
+ Metodología y Datos
 1. Fuentes de Datos
 El dataset final se construyó integrando tres fuentes oficiales:
 
@@ -15,24 +15,24 @@ Clima: Dataset de precipitación subnacional (ecu-rainfall-subnat-full.csv).
 Obetinido de : https://data.humdata.org/dataset/ecu-rainfall-subnational
 Demografía: Listado de códigos postales y población por cantón,  (Datos obetenidos del Inec) 
 
-# El modelo fue entrenado utilizando las siguientes variables predictoras clave seleccionadas en el notebook:
+El modelo fue entrenado utilizando las siguientes variables predictoras clave seleccionadas en el notebook:
 precipitacion_promedio_mm: Promedio histórico de lluvias por cantón.
 Poblacion_Cantonal: Cantidad de habitantes (indicador de vulnerabilidad/exposición).
 Coordenadas: (LATITUD, LONGITUD) utilizadas para la visualización geoespacial.
 
-# Variable Objetivo (Target)
+Variable Objetivo (Target)
 Se construyó una variable binaria riesgo_inundacion:
 1 (Riesgo Alto): Si el evento histórico registró personas afectadas, damnificadas o fallecidas.
 0 (Riesgo Bajo): Si no hubo impacto humano registrado.
 
-# Modelos Evaluados
+Modelos Evaluados
 Se compararon varios algoritmos de clasificación usando GridSearchCV para optimización:
 Random Forest Classifier (Modelo principal).
  Decision Tree Classifier.
  Logistic Regression.
  Voting Classifier (Ensamble).
 
-# Stack Tecnológico
+ Stack Tecnológico
 Lenguaje: Python 3.x
 ML & Data: Pandas, NumPy, Scikit-learn (Entrenamiento y validación).
 Backend: Flask (Servidor web).
