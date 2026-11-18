@@ -1,28 +1,12 @@
-import os
-import requests
-from flask import Flask, render_template_string, send_from_directory
-#Leer los archivos desde el cambio esto para forzar un deploy
-ID_JSON_DRIVE = '1u8uvcR8Mf5U3bXqbu8Qv2wiKJuhilCbJ'
-ID_CSV_DRIVE = '1CMFX_z2xlSvsTeRgjYtP2W4hZbF7Nixk' 
 
-NOMBRE_JSON = 'ORGANIZACION TERRITORIAL DEL ESTADO PARROQUIAL (1).json'
+import os
+from flask import Flask, render_template_string
+
+# Archivos estáticos alojados en GitHub
+NOMBRE_JSON = 'ORGANIZACION TERRITORIAL DEL ESTADO PARROQUIAL.json'
 NOMBRE_CSV = 'predicciones_nacional_completo.csv'
 
-def descargar_de_drive(file_id, output_path):
-    if os.path.exists(output_path):
-        return
-    url = f'https://drive.google.com/uc?export=download&id={file_id}'
-    try:
-        response = requests.get(url)
-        if response.status_code == 200:
-            with open(output_path, 'wb') as f:
-                f.write(response.content)
-    except Exception as e:
-        print(f"Error: {e}")
-
-os.makedirs('static', exist_ok=True)
-descargar_de_drive(ID_JSON_DRIVE, f'static/{NOMBRE_JSON}')
-descargar_de_drive(ID_CSV_DRIVE, f'static/{NOMBRE_CSV}')
+app = Flask(__name__)
 
 html_maestro = """
 <!DOCTYPE html>
@@ -113,8 +97,8 @@ legend.onAdd = function(){
 legend.addTo(map);
 
 function similitud(s1, s2) {
-    s1 = s1.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    s2 = s2.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    s1 = s1.toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g, "");
+    s2 = s2.toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g, "");
     var costs = new Array();
     for (var i = 0; i <= s1.length; i++) {
         var lastValue = i;
@@ -179,7 +163,7 @@ Promise.all([
     csvText.split('\\n').slice(1).forEach(r=>{
         let c=r.split(',');
         if(c.length>=3){
-            riskData[c[0].trim().padStart(6,'0')] = parseFloat(c[2]); 
+            riskData[c[0].trim().padStart(6,'0')] = parseFloat(c[2]);
         }
     });
 
@@ -197,14 +181,12 @@ Promise.all([
                 id: f.properties.DPA_PARROQ
             });
 
-            // HOVER (TOOLTIP): Provincia, Cantón y Parroquia
             l.bindTooltip(
                 '<b>Provincia:</b> ' + f.properties.DPA_DESPRO + '<br>' +
                 '<b>Cantón:</b> ' + f.properties.DPA_DESCAN + '<br>' +
                 '<b>Parroquia:</b> ' + f.properties.DPA_DESPAR
             );
 
-            // CLICK (POPUP): Información completa (Ubicación + Riesgo)
             l.bindPopup(
                 '<div style="text-align:center">'+
                 '<b>PROVINCIA:</b> ' + f.properties.DPA_DESPRO + '<br>' +
@@ -274,23 +256,27 @@ Promise.all([
             }
         });
     };
+}).catch(error => {
+    console.error("Error al cargar los archivos:", error);
+    alert("No se pudieron cargar los datos del mapa. Verifique los archivos estáticos.");
 });
 </script>
 </body>
 </html>
 """
 
-html_maestro = html_maestro.replace("{{NOMBRE_JSON}}", NOMBRE_JSON).replace("{{NOMBRE_CSV}}", NOMBRE_CSV)
-app = Flask(__name__)
+# Insertar nombres de archivos en el HTML
+html_maestro = html_maestro.replace(
+    "{{NOMBRE_JSON}}", NOMBRE_JSON
+).replace(
+    "{{NOMBRE_CSV}}", NOMBRE_CSV
+)
 
 @app.route('/')
 def home():
     return render_template_string(html_maestro)
 
-@app.route('/static/<path:filename>')
-def serve_static(filename):
-    return send_from_directory('static', filename)
-
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
+
